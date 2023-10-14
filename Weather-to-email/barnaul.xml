@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+<channel>
+<title>Гидрометцентр России: О погоде - из первых рук</title>
+<link>http://www.meteoinfo.ru</link>
+<description>Прогноз погоды для городов России и мира</description>
+<ttl>60</ttl>
+<item><title>Барнаул, 13 октября</title>
+<link>http://meteoinfo.ru/forecasts5000/russia/altai-territory/barnaul#2240944668</link>
+<description>Переменная облачность, небольшой кратковременный дождь. Температура ночью 3°, днём 10°. Ветер юго-западный, 3 м/с. Атмосферное давление ночью 752 мм рт.ст., днём 748 мм рт.ст.Вероятность осадков 57%</description>
+<category>Погода</category>
+<source url="http://meteoinfo.ru/rss/forecasts/29838">meteoinfo.ru: Барнаул, прогноз обновлён 13.10.2023 в 15:15(UTC)</source>
+<guid>2240944668</guid>
+</item>
+<item><title>Барнаул, 14 октября</title>
+<link>http://meteoinfo.ru/forecasts5000/russia/altai-territory/barnaul#2240944669</link>
+<description>Облачно, без осадков. Температура ночью 0°, днём 11°. Ветер южный, 4 м/с. Атмосферное давление ночью 749 мм рт.ст., днём 751 мм рт.ст.Вероятность осадков 5%</description>
+<category>Погода</category>
+<source url="http://meteoinfo.ru/rss/forecasts/29838">meteoinfo.ru: Барнаул, прогноз обновлён 13.10.2023 в 15:15(UTC)</source>
+<guid>2240944669</guid>
+</item>
+<item><title>Барнаул, 15 октября</title>
+<link>http://meteoinfo.ru/forecasts5000/russia/altai-territory/barnaul#2240944670</link>
+<description>Облачно, небольшой дождь. Температура ночью 5°, днём 10°. Ветер юго-западный, 5 м/с. Атмосферное давление ночью 744 мм рт.ст., днём 744 мм рт.ст.Вероятность осадков 86%</description>
+<category>Погода</category>
+<source url="http://meteoinfo.ru/rss/forecasts/29838">meteoinfo.ru: Барнаул, прогноз обновлён 13.10.2023 в 15:15(UTC)</source>
+<guid>2240944670</guid>
+</item>
+</channel></rss>

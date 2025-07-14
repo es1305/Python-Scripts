@@ -1,70 +1,104 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import os
 import sys
 import requests
-import lxml.html
 from lxml import etree
 import smtplib
 from email.mime.text import MIMEText
+from contextlib import suppress
 
-####################################
+# Конфигурационные параметры
+CONFIG = {
+    'files': {
+        'xml': './barnaul.xml',
+        'html': './barnaul.html',
+        'xslt': 'transcode.xslt'
+    },
+    'url': "https://meteoinfo.ru/rss/forecasts/index.php?s=29838",
+    'email': {
+        'from': "postmaster@domain.tld",
+        'to': "recipient1@domain.tld",
+        'cc': "recipient2@domain.tld",
+        'subject': "Гидрометцентр RSS",
+        'smtp_server': 'mx.domain.tld',
+        'smtp_port': 587,
+        'login': "LOGIN",
+        'password': "PASSWORD"
+    },
+    'debug': False
+}
 
-if os.path.exists("./barnaul.xml"):
-    os.remove("./barnaul.xml")
-else:
-    print("The file does not exist")
+def cleanup_files():
+    """Удаление старых файлов если они существуют"""
+    for file_type, file_path in CONFIG['files'].items():
+        if file_type in ('xml', 'html'):
+            with suppress(FileNotFoundError):
+                os.remove(file_path)
+                print(f"Удален старый файл: {file_path}")
 
-if os.path.exists("./barnaul.html"):
-    os.remove("./barnaul.html")
-else:
-    print("The file does not exist")
+def download_xml():
+    """Загрузка XML файла с прогнозом погоды"""
+    response = requests.get(CONFIG['url'])
+    response.raise_for_status()
+    with open(CONFIG['files']['xml'], 'wb') as f:
+        f.write(response.content)
 
-####################################
+def transform_xml_to_html():
+    """Преобразование XML в HTML с помощью XSLT"""
+    xslt_transformer = etree.XSLT(etree.parse(CONFIG['files']['xslt']))
+    output_doc = xslt_transformer(etree.parse(CONFIG['files']['xml']))
+    
+    with open(CONFIG['files']['html'], 'wb') as f:
+        f.write(etree.tostring(output_doc, encoding='utf-8'))
 
-url = "https://meteoinfo.ru/rss/forecasts/index.php?s=29838"
+def postprocess_html():
+    """Постобработка HTML файла"""
+    with open(CONFIG['files']['html'], 'r', encoding='utf-8') as file:
+        filedata = file.read()
+    
+    # Оптимизированная замена текста
+    replacements = [
+        ('.', '. '),
+        (' ,', ','),
+        ('  ', ' ')
+    ]
+    for old, new in replacements:
+        filedata = filedata.replace(old, new)
+    
+    with open(CONFIG['files']['html'], 'w', encoding='utf-8') as file:
+        file.write(filedata)
 
-r = requests.get(url)
-with open('./barnaul.xml', 'w') as f:
-    f.write(r.content)
+def send_email():
+    """Отправка email с прогнозом погоды"""
+    with open(CONFIG['files']['html'], 'r', encoding='utf-8') as file:
+        html_content = file.read()
 
-####################################
+    msg = MIMEText(html_content, 'html', "utf-8")
+    msg['From'] = CONFIG['email']['from']
+    msg['To'] = CONFIG['email']['to']
+    msg['Cc'] = CONFIG['email']['cc']
+    msg['Subject'] = CONFIG['email']['subject']
 
-xslt_doc = etree.parse("transcode.xslt")
-xslt_transformer = etree.XSLT(xslt_doc)
+    if CONFIG['debug']:
+        print(msg.as_string())
+    else:
+        recipients = [CONFIG['email']['to']] + CONFIG['email']['cc'].split(",")
+        with smtplib.SMTP(CONFIG['email']['smtp_server'], CONFIG['email']['smtp_port']) as server:
+            server.starttls()
+            server.login(CONFIG['email']['login'], CONFIG['email']['password'])
+            server.sendmail(CONFIG['email']['from'], recipients, msg.as_string())
 
-source_doc = etree.parse("barnaul.xml")
-output_doc = xslt_transformer(source_doc)
+def main():
+    try:
+        cleanup_files()
+        download_xml()
+        transform_xml_to_html()
+        postprocess_html()
+        send_email()
+    except Exception as e:
+        print(f"Произошла ошибка: {str(e)}", file=sys.stderr)
+        sys.exit(1)
 
-original_stdout = sys.stdout
-
-with open('barnaul.html', 'w') as f:
-    sys.stdout = f
-    print(output_doc)
-    sys.stdout = original_stdout
-
-####################################
-
-fromaddr = "FROM@EXAMPLE.COM"
-toaddr = "TO@EXAMPLE.COM"
-ccaddr = "CC@EXAMPLE.COM"
-
-rcpt = ccaddr.split(",") + [toaddr]
-
-html = open("barnaul.html")
-msg = MIMEText(html.read(), 'html', "utf-8")
-msg['From'] = fromaddr
-msg['To'] = toaddr
-msg['Cc'] = ccaddr
-msg['Subject'] = "Гидрометцентр России"
-
-debug = False
-if debug:
-    print(msg.as_string())
-else:
-    server = smtplib.SMTP('MX.EXAMPLE.COM', 25)
-    server.starttls()
-    server.login("USER", "PASSWORD")
-    text = msg.as_string()
-    server.sendmail(fromaddr, rcpt, text)
-    server.quit()
+if __name__ == "__main__":
+    main()

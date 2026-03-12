@@ -8,12 +8,15 @@ import smtplib
 from email.mime.text import MIMEText
 from contextlib import suppress
 
-# Конфигурационные параметры
+# Get the directory where the script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Configuration parameters
 CONFIG = {
     'files': {
-        'xml': './barnaul.xml',
-        'html': './barnaul.html',
-        'xslt': 'transcode.xslt'
+        'xml': os.path.join(SCRIPT_DIR, 'barnaul.xml'),
+        'html': os.path.join(SCRIPT_DIR, 'barnaul.html'),
+        'xslt': os.path.join(SCRIPT_DIR, 'transcode.xslt')
     },
     'url': "https://meteoinfo.ru/rss/forecasts/index.php?s=29838",
     'email': {
@@ -30,22 +33,25 @@ CONFIG = {
 }
 
 def cleanup_files():
-    """Удаление старых файлов если они существуют"""
+    """Remove old files if they exist"""
     for file_type, file_path in CONFIG['files'].items():
         if file_type in ('xml', 'html'):
             with suppress(FileNotFoundError):
                 os.remove(file_path)
-                print(f"Удален старый файл: {file_path}")
+                print(f"Removed old file: {file_path}")
 
 def download_xml():
-    """Загрузка XML файла с прогнозом погоды"""
+    """Download XML file with weather forecast"""
     response = requests.get(CONFIG['url'])
     response.raise_for_status()
     with open(CONFIG['files']['xml'], 'wb') as f:
         f.write(response.content)
 
 def transform_xml_to_html():
-    """Преобразование XML в HTML с помощью XSLT"""
+    """Transform XML to HTML using XSLT"""
+    if not os.path.exists(CONFIG['files']['xslt']):
+        raise FileNotFoundError(f"XSLT file not found: {CONFIG['files']['xslt']}")
+    
     xslt_transformer = etree.XSLT(etree.parse(CONFIG['files']['xslt']))
     output_doc = xslt_transformer(etree.parse(CONFIG['files']['xml']))
     
@@ -53,11 +59,11 @@ def transform_xml_to_html():
         f.write(etree.tostring(output_doc, encoding='utf-8'))
 
 def postprocess_html():
-    """Постобработка HTML файла"""
+    """Post-process HTML file"""
     with open(CONFIG['files']['html'], 'r', encoding='utf-8') as file:
         filedata = file.read()
     
-    # Оптимизированная замена текста
+    # Optimized text replacement
     replacements = [
         ('.', '. '),
         (' ,', ','),
@@ -70,7 +76,7 @@ def postprocess_html():
         file.write(filedata)
 
 def send_email():
-    """Отправка email с прогнозом погоды"""
+    """Send email with weather forecast"""
     with open(CONFIG['files']['html'], 'r', encoding='utf-8') as file:
         html_content = file.read()
 
@@ -83,7 +89,7 @@ def send_email():
     if CONFIG['debug']:
         print(msg.as_string())
     else:
-        recipients = [CONFIG['email']['to']] + CONFIG['email']['cc'].split(",")
+        recipients = [CONFIG['email']['to']] + [addr.strip() for addr in CONFIG['email']['cc'].split(",")]
         with smtplib.SMTP(CONFIG['email']['smtp_server'], CONFIG['email']['smtp_port']) as server:
             server.starttls()
             server.login(CONFIG['email']['login'], CONFIG['email']['password'])
@@ -97,7 +103,7 @@ def main():
         postprocess_html()
         send_email()
     except Exception as e:
-        print(f"Произошла ошибка: {str(e)}", file=sys.stderr)
+        print(f"An error occurred: {str(e)}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":

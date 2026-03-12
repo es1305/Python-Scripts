@@ -6,7 +6,7 @@ import requests
 import time
 from urllib.parse import quote_plus
 
-# Конфигурация
+# Configuration
 ADMIN = "admin"
 PASSWORD = "PASSWORD_HERE"
 BASE_URL = "http://127.0.0.1:8000"
@@ -18,7 +18,7 @@ STATIONS_STATIC = {
 }
 
 STOP_WORDS = ['$', 'промо', 'джингл', 'новости', 'погода', 'блок', 'реклама']
-last_song = "" # Переменная для отслеживания смены трека
+last_song = "" # Variable to track track changes
 
 def get_xml_from_smb():
     cmd = ['smbclient', '-d', '0', '-A', '/root/creds/.smbcredentials', '//fm-air-11/xml', '-c', 'get cur_playing.xml -']
@@ -26,7 +26,7 @@ def get_xml_from_smb():
         result = subprocess.run(cmd, capture_output=True, text=False, timeout=5)
         return result.stdout
     except Exception as e:
-        print(f"[{time.strftime('%H:%M:%S')}] [!] Ошибка SMB: {e}")
+        print(f"[{time.strftime('%H:%M:%S')}] [!] SMB error: {e}")
         return None
 
 def update_icecast(mount, artist, title):
@@ -39,10 +39,10 @@ def update_icecast(mount, artist, title):
         }
         r = requests.get(f"{BASE_URL}/admin/metadata", params=params, auth=(ADMIN, PASSWORD), timeout=3)
         if r.status_code == 200:
-            # Логируем время и то, что ушло в эфир
+            # Log time and what was sent to air
             print(f"[{time.strftime('%H:%M:%S')}] [OK] {mount} -> {artist} - {title}")
     except Exception as e:
-        print(f"[{time.strftime('%H:%M:%S')}] [!] Ошибка Icecast ({mount}): {e}")
+        print(f"[{time.strftime('%H:%M:%S')}] [!] Icecast error ({mount}): {e}")
 
 def process_heartfm():
     global last_song
@@ -65,25 +65,25 @@ def process_heartfm():
         else:
             cur_art, cur_tit = "Радио «Heart FM» Барнаул", "Тел.: (3852) 55-10-59"
 
-        # Проверка на смену трека
+        # Check for track change
         current_combined = f"{cur_art} - {cur_tit}"
         if current_combined != last_song:
             update_icecast("heartfm", cur_art, cur_tit)
             last_song = current_combined
 
     except Exception as e:
-        print(f"[{time.strftime('%H:%M:%S')}] [!] Ошибка парсинга: {e}")
+        print(f"[{time.strftime('%H:%M:%S')}] [!] Parsing error: {e}")
 
-# --- Основной цикл ---
-print(f"=== Служба запущена {time.strftime('%Y-%m-%d %H:%M:%S')} ===")
+# --- Main loop ---
+print(f"=== Service started {time.strftime('%Y-%m-%d %H:%M:%S')} ===")
 
 while True:
-    # Делаем 30 проверок Heart FM, каждая с паузой в 2 секунды
+    # Perform 30 Heart FM checks, each with a 2 second pause
     for _ in range(30):
         process_heartfm()
-        time.sleep(2)  # Пауза ВСЕГДА должна быть здесь
+        time.sleep(2)  # Pause should ALWAYS be here
 
-    # И только после 30 проверок (примерно через минуту) обновляем статику
+    # And only after 30 checks (approximately after one minute) update static stations
     for mount, (artist, title) in STATIONS_STATIC.items():
         update_icecast(mount, artist, title)
 
